@@ -65,7 +65,7 @@ Points initialCenters(Points centroids, double minP, double maxP, int k);
 
 void cluster(int minPts, MEASURE measure = Euclidean);
 
-void plot(Points points);
+void plot(Points points, Mat image);
 
 void printPoints(Points points) ;
 

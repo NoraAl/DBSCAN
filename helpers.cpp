@@ -128,23 +128,21 @@ void show(Mat image) {
 
 
 
-void plot(Points points) {
-    Mat image = Mat::zeros(620, 620, CV_8UC3);
-    int padding = 20, size = 600, windowSize = size + padding;
-    int scale = 4;
-    int p2 = padding / 2;
+void plot(Points points, Mat image) {
+    int scale = 6;
+    int padding = 20 / 2;
     Colors colors = Colors();
 
     //opencv coordinates are not mathematical coordinates, we need to flip the image
     for (auto p:points) {
         if (p.core) {//core point
-            circle(image, Point((p.x * 6) + p2, (p.y * 6) + p2), 7, colors.shadow(), -1,LINE_AA);
-            circle(image, Point((p.x * 6) + p2, (p.y * 6) + p2), 5, colors[p.cluster], -1, LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 7, colors.shadow(), -1,LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 5, colors[p.cluster], -1, LINE_AA);
 
         }
         else {//boundary and noise
             //todo: make boundary
-            circle(image, Point((p.x * 6) + p2, (p.y * 6) + p2), 4, colors.noise(), -1,LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 4, colors.noise(), -1,LINE_AA);
         }
     }
 
