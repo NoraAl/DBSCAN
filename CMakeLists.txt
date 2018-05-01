@@ -6,6 +6,6 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 set(CMAKE_CXX_STANDARD 11)
 set(HEADERS cluster.hpp)
-add_executable(cluster cluster.cpp helpers.cpp randomGenerator.cpp ${HEADERS})
+add_executable(cluster cluster.cpp helpers.cpp randomGenerator.cpp colors.cpp ${HEADERS})
 
 target_link_libraries( cluster ${OpenCV_LIBS})

@@ -1,7 +1,7 @@
 #include "cluster.hpp"
 
 static Points points;
-static Points centroids;
+static double epsilon = 15;
 
 /****************************
  *
@@ -16,177 +16,115 @@ int main() {
 
         srand(time(nullptr));
 
-        vector <int> pCount = {20, 1000};
-        vector <int> kCount = {2,3,4,7};
-        auto process = [](string centroidfile, string pointfile, int k, MEASURE m){
-            centroids = readPoints(centroidfile,true);
-            points = readPoints(pointfile,false);
-            cluster(k,m);
-        };
+        vector<int> pCount = {30};//{30, 20, 1000};
+        vector<int> minPoints = {1}; //todo: accept also from user
 
-        for (auto i: pCount){// for variant number of points
-            for (auto k: kCount){ // for variant k
+        auto process = [](int minPts, string pointfile, MEASURE m) {
+            //points = readPoints(pointfile, false);
+            points = {{1,1},
+                      {3,3},
+                      {10,3},
+                      {80,80},
+                      {90,85},
+                      {85,90},
+                      {50,50},
+                      {90,1}};
+        cluster(minPts, m);
+    };
 
-                string pointfile = format("../points_%d.txt",i);
-                string centroidfile = format("../k_%d.txt", k);
+    for (auto i: pCount) {// for each file with variant number of points
+        for (auto minPts: minPoints) { // for variant minPoints
 
-                cout <<BCYAN<<"********\nk = "<<k<<"\n********"<<RESET;
+            string pointfile = format("../points_%d.txt", i);
 
-                process(centroidfile,pointfile,k,Euclidean);
-                process(centroidfile,pointfile,k,Manhattan);
+            cout << BCYAN << "\n**************\nk = " << minPts << RESET;
 
-            }
+            process(minPts, pointfile, Euclidean);
+            //process(minPts, pointfile, Manhattan);
         }
-        return 0;
-    } catch (string error) {
-        cout << error<< endl;
-        return 1;
     }
+    return 0;
+} catch (string error) {
+    cout << error << endl;
+    return 1;
+}
 
 }
 
 /****************************
  *
  *
- * reset each centroid to the
- * average of its cluster
+ * DBSCAN algorithm
  *
  *
  ****************************/
-inline bool updateCentroids() {
-    Points oldCentroids = centroids;
-
-
-    for (int i = 0; i< centroids.size(); i++) {
-        int count = 0;
-        P currentCentroid = P(-1);
-
-        for (auto p: points) {
-            if (p.cluster == i) {
-                currentCentroid.x += p.x;
-                currentCentroid.y += p.y;
-                count++;
+void cluster(int minPts, MEASURE m) {
+    // find the spanning tree to find each separate cluster
+    // if all the edge weights of a given graph are the same, then every spanning tree of that graph is minimum.
+    bool connected[points.size()][points.size()];
+    for (int i=0;i<points.size(); i++){
+        for (int j=0;j<points.size(); j++){
+            connected[i][j] = false;
+        }
+    }
+    // by the end of this loop each core point is marked
+    // and if there is a direct path between two points
+    // they will be marked true
+    cout << "\n";
+    for (int i = 0; i < points.size() ; i++) {
+        cout << i<<":("<<setfill(' ') << setw(2)<< points[i].x<<"," <<setfill(' ') << setw(2)<<points[i].y <<")"<<"\t";
+        for (int j = i + 1; j < points.size(); j++) {
+            if (i == j)
+                throw "i==j!!";
+            auto dist = getDistance(points[i], points[j], m);
+            cout <<setfill(' ') << setw(10)<< dist<<"\t";
+            if (dist < epsilon) {
+                points[i].neighbors++;
+                points[j].neighbors++;
+                connected[i][j] = true;
             }
         }
-
-        if (count){
-            //average
-            currentCentroid.x = currentCentroid.x / count;
-            currentCentroid.y = currentCentroid.y / count;
-            //set current centroid
-            centroids[i] = currentCentroid;
+        if (points[i].neighbors > minPts) {
+            points[i].core = true;
         }
-        //else{ //if empty cluster, regenerate that centroid, or leave it as is
-        //    centroids[i].x = getRandom(minP,maxP);
-        //     centroids[i].y = getRandom(minP,maxP);
-        //}
+        cout << "\n";
     }
 
-    // return true if centroids change; i.e. return false if algorithm converge
-    for (int i = 0; i < centroids.size(); i++) {
-        if (centroids[i] != oldCentroids[i])
-            return true;
-    }
+    function<void(int, int)> mark;// will be called from below loop, implemented afterward
+    mark = [&](int i, int cluster) {
+        if (!points[i].core) return ;
 
-    return false;
-}
+        points[i].cluster = cluster;
+        for (int j = i + 1; j < points.size(); j++) {
 
-/****************************
- *
- *
- * reassign each point to the
- * nearest cluster
- *
- *
- ****************************/
-inline void updateLabels(MEASURE m) {
-    double current;
-    for (auto &p: points) {
-        double min = DBL_MAX;
-        int i = 0;
-        for (auto c: centroids) {
-            current = getDistance(p,c, m);
-            if (current < min) {
-                min = current;
-                p.cluster = i;//initially all clusters are zero
+            if (connected[i][j] && points[j].core) {// if they are connected and both are core
+                cout <<"connected "<<i<<","<<j<<endl;
+                points[j].cluster = cluster;
+                mark(j, cluster);// call recursively
+
             }
-            i++;
-        }
-    }
-}
+        }//for j
+    };
 
-
-/****************************
- *
- *
- * k-mean algorithm
- *
- *
- ****************************/
-void cluster(int k, MEASURE measure) {
-
-    //centroids.clear();
-    for(auto &p: points){
-        p.cluster = 0;
-    }
-    int i = 0;
-
-
-    do {
-        //plot points for each iteration
-        plot(points, centroids, measure, k, i );
-        updateLabels(measure);
-        i++;
-    } while (updateCentroids());
-
-
-    // analysis
-    intracluster(measure,k);
-    minMax(points,centroids,measure);
-}
-
-
-/****************************
- *
- *
- * intra-cluster distance and the
- * average of all intra-cluster distances.
- *
- *
- ****************************/
-
-void intracluster(MEASURE m, int k) {
-    vector<double> distances;
-
-    for (int i = 0; i< centroids.size(); i++) {
-        int count = 0; double distance = 0;// reset them each iteration
-
-        for (auto p: points) {
-            if (p.cluster == i) {
-                count++;
-                distance += getDistance(p,centroids[i], m);
+    // by the end of this loop, a spanning tree is generated for each cluster
+    for (int i = 0, c = 0; i < points.size(); i++) {
+        if (points[i].core) {
+            if (!points[i].cluster) {// point[i] hasn't been clustered yet
+                c++;
+                mark(i, c);
             }
         }
+    }
 
-        if (count==0){ //empty cluster, regenerate it
-            distances.push_back(-1);//
-        } else{
-            distances.push_back( distance/count);
-        }
-
+    for (int i = 0; i < points.size(); i++) {
+        cout << i<<":("<<setfill(' ') << setw(2)<< points[i].x<<"," <<setfill(' ') << setw(2)<<points[i].y <<")"<<"||\t";
+        cout << points[i].core<< ","<<points[i].cluster<<endl;
     }
 
 
-    cout <<endl<<"Intra-distances ("<<BCYAN<<(m? "Manhattan":"Euclidean")<<RESET<<"):"<<endl;
-    double sum = 0;
-    for(auto d: distances){
-        if (d<0)
-            continue;
-        sum +=d;
-        cout <<BGREEN<<d<<RESET<<"\t";
-    }
-    sum = sum/k;
-    cout <<"\nAverage of intra-distances is: "<<BRED<<sum<<RESET<<endl;
+
+
+    plot(points);
+
 
 }
-

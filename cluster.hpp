@@ -24,17 +24,31 @@ enum MEASURE {
 
 // Point structure, "Point" is reserved for one of cv types
 struct P {
-    P() : x(0), y(0), cluster(0) {}
-
-    P(int cluster) : x(0), y(0), cluster(cluster) {}
-    P(double x, double y) : x(x), y(y), cluster(0) {}//regular point
-    P(double x, double y, int cluster) : x(x), y(y), cluster(cluster) {}//potential cluster
+    P(double x, double y) : x(x), y(y), neighbors(0), cluster(0),core(false), boundary(false), noise(false){}
 
     double x;
     double y;
-    int cluster;
+    int neighbors;
+    int cluster; // zero cluster means not clustered yet
+    bool core;
+    bool boundary;
+    bool noise;
 };
 typedef vector<P> Points;
+
+class Colors{
+public:
+    Colors();
+    ~Colors();
+    Scalar color(int index);
+    Scalar boundary(int index);
+    Scalar noise();
+    Scalar shadow();
+    Scalar operator[](int);
+private:
+    vector<Scalar> colors;
+
+};
 
 // overload equal to check point equality
 bool operator==(const P &p1, const P &p2);
@@ -49,11 +63,9 @@ Points  generateRandom(Points &points, double minX, double maxX, int num, bool c
 
 Points initialCenters(Points centroids, double minP, double maxP, int k);
 
-void cluster(int k, MEASURE measure = Euclidean);
+void cluster(int minPts, MEASURE measure = Euclidean);
 
-void plot(Points points, Mat image);
-
-void plot(Points& points, Points& centroids, MEASURE measure, int k, int i);
+void plot(Points points);
 
 void printPoints(Points points) ;
 

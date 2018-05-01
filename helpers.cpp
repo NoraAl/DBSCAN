@@ -47,17 +47,17 @@ void minMax(Points &points, Points &centroids, MEASURE m){
             maxMatrix[i][j] = DBL_MIN;
         }
 
-    for (int i = 0; i <k; i++)// current cluster
-        for (int j = 0; j<k; j++){//every other cluster
+    for (int i = 0; i <k; i++)// current neighbors
+        for (int j = 0; j<k; j++){//every other neighbors
 
             if (i>=j)
                 continue;
 
             else {
                 for (auto p: points){
-                    if (p.cluster == i){
+                    if (p.neighbors == i){
                         for (auto otherP: points){
-                            if (otherP.cluster == j){
+                            if (otherP.neighbors == j){
                                 double current = getDistance(p,otherP,m);
                                 if ( current< minMatrix[i][j])
                                     minMatrix[i][j] = current;
@@ -104,37 +104,6 @@ string fnum(double num){
     return stream.str();
 }
 
-
-void plot(Points points, Mat image) {
-    int padding = 20, size = 400, windowSize = size + padding;
-    int scale = 4;
-    int p2 = padding / 2;
-
-    vector<Scalar> colors;
-    colors.push_back(Scalar(255, 255, 255));//white
-    colors.push_back(Scalar(102, 255, 255));//3
-    colors.push_back(Scalar(255, 255, 0));//yellow
-    colors.push_back(Scalar(204, 102, 255));//6
-    colors.push_back(Scalar(0,255,0));//green
-    colors.push_back(Scalar(255, 30, 127));//9
-    colors.push_back(Scalar(0, 153, 255));//orange
-    colors.push_back(Scalar(255, 255, 0));//1
-    colors.push_back(Scalar(0, 0, 255));//red for centroids
-
-    //opencv coordinates are not mathematical coordinates, we need to flip the image
-    for (auto p:points) {
-        if (p.cluster < 0) {//centroids
-            circle(image, Point((p.x * 4) + p2, (p.y * 4) + p2), 7, colors[colors.size() - 2], -1,LINE_AA);
-            circle(image, Point((p.x * 4) + p2, (p.y * 4) + p2), 5, colors[colors.size() - 1], -1, LINE_AA);
-
-        }
-        else {
-            //circle(image, Point((p.x * 4) + p2, (p.y * 4) + p2), 3, colors[colors.size() - 3], 2,LINE_AA);
-            circle(image, Point((p.x * 4) + p2, (p.y * 4) + p2), 4, colors[p.cluster], -1,LINE_AA);
-        }
-    }
-}
-
 void write(Mat image, MEASURE m,int k, int i) {
     Mat flipped;
     flip(image, flipped, 0);
@@ -143,7 +112,7 @@ void write(Mat image, MEASURE m,int k, int i) {
     imwrite(filename, flipped);
 }
 
-void show(Mat image, MEASURE m,int k, int i) {
+void show(Mat image) {
     Mat flipped;
     flip(image, flipped, 0);
     string windowname = "DBSCAN";
@@ -157,6 +126,32 @@ void show(Mat image, MEASURE m,int k, int i) {
     }
 }
 
+
+
+void plot(Points points) {
+    Mat image = Mat::zeros(620, 620, CV_8UC3);
+    int padding = 20, size = 600, windowSize = size + padding;
+    int scale = 4;
+    int p2 = padding / 2;
+    Colors colors = Colors();
+
+    //opencv coordinates are not mathematical coordinates, we need to flip the image
+    for (auto p:points) {
+        if (p.core) {//core point
+            circle(image, Point((p.x * 6) + p2, (p.y * 6) + p2), 7, colors.shadow(), -1,LINE_AA);
+            circle(image, Point((p.x * 6) + p2, (p.y * 6) + p2), 5, colors[p.cluster], -1, LINE_AA);
+
+        }
+        else {//boundary and noise
+            //todo: make boundary
+            circle(image, Point((p.x * 6) + p2, (p.y * 6) + p2), 4, colors.noise(), -1,LINE_AA);
+        }
+    }
+
+    show(image);
+}
+
+
 void printPoints(Points points) {
     int i = 0;
     for (auto p: points) {
@@ -166,17 +161,10 @@ void printPoints(Points points) {
     cout << endl;
 }
 
-void plot(Points &points, Points &centroids, MEASURE m, int k, int i) {
-    Mat image = Mat::zeros(420, 420, CV_8UC3);
-    plot(points, image);
-    plot(centroids, image);
-    show(image, m,k, i);
-}
-
 Points readPoints(string filename, bool centroids, char separator) {
     Points points;
-    P point;
-    point.cluster =(centroids? -1:0);;
+    P point(0,0);
+    point.neighbors =(centroids? -1:0);;
     ifstream file(filename, ifstream::in);
     if (!file) {
         throw "Not a valid file name.";

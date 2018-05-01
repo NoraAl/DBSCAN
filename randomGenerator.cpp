@@ -12,9 +12,8 @@ inline int getRandom(int min, int max) {
 }
 
 Points generateRandom(Points &points, double minX, double maxX, int num, bool centroids, double minY, double maxY) {
-    P point = P();
-    if (centroids)
-        point = P(-1);
+    P point = P(0,0);
+
     while (num) {
         point.x = getRandom(minX, maxX);
         point.y = getRandom(minY, maxY);
