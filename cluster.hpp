@@ -18,11 +18,6 @@
 using namespace std;
 using namespace cv;
 
-enum MEASURE {
-    Euclidean, Manhattan
-};
-
-// Point structure, "Point" is reserved for one of cv types
 struct P {
     P(double x, double y) : x(x), y(y), neighbors(0), cluster(-1),core(false), boundary(false), noise(false){}
 
@@ -34,7 +29,6 @@ struct P {
     bool boundary;
     bool noise;
 };
-typedef vector<P> Points;
 
 class Colors{
 public:
@@ -47,10 +41,10 @@ public:
     Scalar operator[](int);
 private:
     vector<Scalar> colors;
-
 };
 
-// overload equal to check point equality
+typedef vector<P> Points;
+
 bool operator==(const P &p1, const P &p2);
 
 bool operator!=(const P &p1, const P &p2);
@@ -59,21 +53,15 @@ Points readPoints(string filename, bool centroids, char separator = ',');
 
 void generateRandom(Points &points, double minX, double maxX, int num, double minY=-1, double maxY=-1);
 
-void cluster(int minPts, MEASURE measure = Euclidean, bool show = false);
+void cluster(int minPts, bool show = false);
 
-void plot(Points points, Mat image, bool last);
+void plot(Points points, Mat image, int minPts, double epsilon, bool last);
+
+void plotPath(Points points, Mat image, int i, int j);
 
 void printPoints(Points points) ;
 
-double getDistance(P p1, P p2, MEASURE m);
-
-inline double getEuclidean(P p1, P p2);//Euclidean
-
-inline double getManhattan(P p1, P p2);//Manhattan
-
-void minMax(Points &points, Points &centroids, MEASURE m);
-
-string fnum(double num);
+double getDistance(P p1, P p2);
 
 
 #endif
