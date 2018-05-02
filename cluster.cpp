@@ -2,7 +2,7 @@
 
 static Points points;
 static int size;
-static double epsilon = 5;
+static double epsilon =8;
 
 /****************************
  *
@@ -25,29 +25,29 @@ int main() {
         srand(time(nullptr));
 
         vector<int> pCount = {212};//{30, 20, 1000};
-        vector<int> minPoints = {5}; //todo: accept also from user
+        vector<int> minPoints = {2}; //todo: accept also from user
 
         auto process = [](int minPts, string pointfile, MEASURE m) {
-            points = readPoints(pointfile, false);
-//            points = {{1,  1},
-//                      {90, 90},
+            //points = readPoints(pointfile, false);
+//            points = {{7,  0},
+//                      {6, 0},
 //                      {90, 80},
 //                      {90, 5},
-//                      {2,  2},
-//                      {3,  3},
-//                      {10, 10},
-//                      {20, 10},
+//                      {2,  0},
+//                      {3,  0},
+//                      {0,0},
 //                      {3,  2},
-//                      {2,  3},
+//                      {3.5,  3.5},
 //                      {90, 75},
-//                      {90, 10},
-//                      {20, 20}
+//                      {4, 0},
+//                      {3, 4}
 //            };
 
-//            generateRandom(points,1,100,100);//100
-//            generateRandom(points,1,2,50,0,4);
-//           // generateRandom(points,70,99,10);
-//            generateRandom(points, 70,80,50,60,80);
+            generateRandom(points,1,100,100);//100
+            generateRandom(points,1,40,50,30,44);
+           // generateRandom(points,70,99,10);
+            generateRandom(points, 70,80,5,60,80);
+            generateRandom(points, 0,5,20,60,96);
             size = points.size();
             sort(points.begin(), points.end(), lessThan);
             cluster(minPts, m);
@@ -156,19 +156,17 @@ void cluster(int minPts, MEASURE m, bool show) {
 
     function<void(int, int)> prim;// will be called from below loop, implemented afterward
     prim = [&](int i, int cluster) {
-        if (!points[i].core) throw "error";
+        if (!points[i].core) throw "should not call for boundary or noise.";
 
-        points[i].cluster = cluster;
+        points[i].cluster = cluster; // i is a core
         for (int j = 0; j < size; ++j) {
             if (i == j)
                 continue;
-            if (paths[i][j]) {
+            if (paths[i][j]) {// i and j are connected
                 points[j].cluster = cluster;
-                if (points[j].core) {// they are connected and both are core
+                if (points[j].core) {// both are core, add
                     if (find(currentCluster.begin(), currentCluster.end(), j) == currentCluster.end())
                         currentCluster.push_back(j);
-                    //mark(j, cluster);// call recursively
-
                 } else {//boundary
                     points[j].boundary = true;
                 }

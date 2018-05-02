@@ -143,17 +143,17 @@ void plot(Points points, Mat image,bool last) {
     //opencv coordinates are not mathematical coordinates, we need to flip the image
     for (auto p:points) {
         int cluster = (p.cluster<0)?0:p.cluster;
+        auto p1 = Point((p.x * scale) + padding, (p.y * scale) + padding);
+
         if (p.core) {//core point
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 5, colors.shadow(), -1,LINE_AA);
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 3, colors[cluster], -1, LINE_AA);
+            drawMarker(image, p1,  colors[cluster], MARKER_CROSS , 7, 3);
+
 
         }else if(p.boundary){
-            //circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 7, colors.shadow(), -1,LINE_AA);
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 3, colors[cluster], -1, LINE_AA);
+            drawMarker(image, p1,  colors[cluster],MARKER_TILTED_CROSS , 8, 1);
         }
-        else {//boundary and noise
-            //todo: make boundary
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 2, colors.noise(), -1,LINE_AA);
+        else {
+            drawMarker(image, p1,  colors.noise(),MARKER_DIAMOND , 2, 2);
         }
     }
 
