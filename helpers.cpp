@@ -112,41 +112,52 @@ void write(Mat image, MEASURE m,int k, int i) {
     imwrite(filename, flipped);
 }
 
-void show(Mat image) {
+void show(Mat image, bool last) {
     Mat flipped;
     flip(image, flipped, 0);
     string windowname = "DBSCAN";
-
-
-    while(1){
+    if (last){
         imshow(windowname, flipped);
-        int key = waitKey(1);
-        if (key == ' ')
-            break;
+        waitKey(0);
+        return;
     }
+    imshow(windowname, flipped);
+    waitKey(100);
+
+//    while(1){
+//        imshow(windowname, flipped);
+//        int key = waitKey(1);
+//        if (key == ' ')
+//            break;
+//    }
 }
 
 
 
-void plot(Points points, Mat image) {
+void plot(Points points, Mat image,bool last) {
     int scale = 6;
     int padding = 20 / 2;
     Colors colors = Colors();
 
+
     //opencv coordinates are not mathematical coordinates, we need to flip the image
     for (auto p:points) {
+        int cluster = (p.cluster<0)?0:p.cluster;
         if (p.core) {//core point
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 7, colors.shadow(), -1,LINE_AA);
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 5, colors[p.cluster], -1, LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 5, colors.shadow(), -1,LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 3, colors[cluster], -1, LINE_AA);
 
+        }else if(p.boundary){
+            //circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 7, colors.shadow(), -1,LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 3, colors[cluster], -1, LINE_AA);
         }
         else {//boundary and noise
             //todo: make boundary
-            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 4, colors.noise(), -1,LINE_AA);
+            circle(image, Point((p.x * scale) + padding, (p.y * scale) + padding), 2, colors.noise(), -1,LINE_AA);
         }
     }
 
-    show(image);
+    show(image, last);
 }
 
 
@@ -162,8 +173,10 @@ void printPoints(Points points) {
 Points readPoints(string filename, bool centroids, char separator) {
     Points points;
     P point(0,0);
-    point.neighbors =(centroids? -1:0);;
+    point.neighbors =(centroids? -1:0);
+
     ifstream file(filename, ifstream::in);
+
     if (!file) {
         throw "Not a valid file name.";
     }

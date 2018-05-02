@@ -1,7 +1,8 @@
 #include "cluster.hpp"
 
 static Points points;
-static double epsilon = 15;
+static int size;
+static double epsilon = 5;
 
 /****************************
  *
@@ -10,25 +11,45 @@ static double epsilon = 15;
  *
  *
  ****************************/
+bool lessThan(P i, P j) {
+    if (i.x < j.x)
+        return true;
+    if (i.x == j.x)
+        return i.y < j.y;
+    return false;
+}
 
 int main() {
     try {
 
         srand(time(nullptr));
 
-        vector<int> pCount = {30};//{30, 20, 1000};
-        vector<int> minPoints = {1}; //todo: accept also from user
+        vector<int> pCount = {212};//{30, 20, 1000};
+        vector<int> minPoints = {5}; //todo: accept also from user
 
         auto process = [](int minPts, string pointfile, MEASURE m) {
             points = readPoints(pointfile, false);
 //            points = {{1,  1},
+//                      {90, 90},
+//                      {90, 80},
+//                      {90, 5},
+//                      {2,  2},
 //                      {3,  3},
-//                      {10, 3},
-//                      {80, 80},
-//                      {90, 85},
-//                      {85, 90},
-//                      {50, 50},
-//                      {90, 1}};
+//                      {10, 10},
+//                      {20, 10},
+//                      {3,  2},
+//                      {2,  3},
+//                      {90, 75},
+//                      {90, 10},
+//                      {20, 20}
+//            };
+
+//            generateRandom(points,1,100,100);//100
+//            generateRandom(points,1,2,50,0,4);
+//           // generateRandom(points,70,99,10);
+//            generateRandom(points, 70,80,50,60,80);
+            size = points.size();
+            sort(points.begin(), points.end(), lessThan);
             cluster(minPts, m);
         };
 
@@ -44,8 +65,8 @@ int main() {
             }
         }
         return 0;
-    } catch (string error) {
-        cout << error << endl;
+    } catch (const char *error) {
+        cout <<"\nError: "<< error << endl;
         return 1;
     }
 
@@ -67,12 +88,13 @@ void plotPath(Mat image, int i, int j) {
     int scale = 6;
     Point p1((points[i].x * scale) + 10, (points[i].y * scale) + 10);
     Point p2((points[j].x * scale) + 10, (points[j].y * scale) + 10);
-    line(image, p1, p2, colors.color(3), 2, LINE_AA);
+    line(image, p1, p2, colors.color(2), 2, LINE_AA);
     Mat flipped;
     flip(image, flipped, 0);
 
 
 }
+
 
 /****************************
  *
@@ -81,76 +103,107 @@ void plotPath(Mat image, int i, int j) {
  *
  *
  ****************************/
-void cluster(int minPts, MEASURE m) {
-    Mat image = createImage();
-    plot(points, image);
+void cluster(int minPts, MEASURE m, bool show) {
 
-    // find the spanning tree to find each separate cluster
-    // if all the edge weights of a given graph are the same, then every spanning tree of that graph is minimum.
-    bool connected[points.size()][points.size()];
-    for (int i = 0; i < points.size(); i++) {
-        for (int j = 0; j < points.size(); j++) {
-            connected[i][j] = false;
+    Mat image;
+
+    vector<vector<bool> > paths(size);
+    for (int i = 0; i < size; i++) {
+        // todo: optimize the space
+        paths[i] = vector<bool>(size);
+    }
+    for (int i = 0; i < points.size(); ++i) {
+        for (int j = 0; j < points.size(); ++j) {
+            paths[i][j] = false;
         }
     }
+
     // by the end of this loop each core point is marked
     // and if there is a direct path between two points
     // they will be marked true
     cout << "\n";
-    for (int i = 0; i < points.size(); i++) {
-        for (int j = i + 1; j < points.size(); j++) {
+    for (int i = 0; i < points.size(); ++i) {
+        cout << i << ":(" << setfill(' ') << setw(2) << points[i].x << "," << setfill(' ') << setw(2) << points[i].y
+             << ")" << "||\t";
+
+        for (int j = i + 1; j < points.size(); ++j) {
             auto dist = getDistance(points[i], points[j], m);
+            cout << setfill(' ') << setw(5) << dist << "\t";
             if (dist < epsilon) {
                 points[i].neighbors++;
                 points[j].neighbors++;
-                connected[i][j] = true;
+                paths[i][j] = true;
+                paths[j][i] = true;
+                image = createImage();
                 plotPath(image, i, j);
 
             }
         }
         if (points[i].neighbors > minPts) {
             points[i].core = true;
-            plot(points, image);
+            if (show)
+                plot(points, image, false);
 
         }
-        cout << "\n";
+        cout << endl;
     }
 
-    function<void(int, int)> mark;// will be called from below loop, implemented afterward
-    mark = [&](int i, int cluster) {
-        if (!points[i].core) return;
+
+    // clear image
+    image = createImage();
+
+    vector<int> currentCluster;
+
+    function<void(int, int)> prim;// will be called from below loop, implemented afterward
+    prim = [&](int i, int cluster) {
+        if (!points[i].core) throw "error";
 
         points[i].cluster = cluster;
-        for (int j = i + 1; j < points.size(); j++) {
-
-            if (connected[i][j] && points[j].core) {// if they are connected and both are core
-                cout << "connected " << i << "," << j << endl;
+        for (int j = 0; j < size; ++j) {
+            if (i == j)
+                continue;
+            if (paths[i][j]) {
                 points[j].cluster = cluster;
-                mark(j, cluster);// call recursively
+                if (points[j].core) {// they are connected and both are core
+                    if (find(currentCluster.begin(), currentCluster.end(), j) == currentCluster.end())
+                        currentCluster.push_back(j);
+                    //mark(j, cluster);// call recursively
 
+                } else {//boundary
+                    points[j].boundary = true;
+                }
             }
+
         }//for j
     };
 
-    // by the end of this loop, a spanning tree is generated for each cluster
-    for (int i = 0, c = 0; i < points.size(); i++) {
+    //by the end of this loop, a spanning tree is generated for each cluster
+    for (int i = 0, c = -1; i < points.size(); ++i) {
         if (points[i].core) {
-            if (!points[i].cluster) {// point[i] hasn't been clustered yet
+            if (points[i].cluster < 0) {// point[i] hasn't been clustered yet
                 c++;
-                mark(i, c);
+                prim(i, c);
+                for (int j = 0; j < currentCluster.size(); ++j) {
+
+                    int index = currentCluster[j];
+                    prim(index, c);
+                }
+
+                currentCluster.clear();
             }
         }
     }
 
-    for (int i = 0; i < points.size(); i++) {
+    for (int i = 0; i < points.size(); ++i) {
         cout << i << ":(" << setfill(' ') << setw(2) << points[i].x << "," << setfill(' ') << setw(2) << points[i].y
              << ")" << "||\t";
-        cout << points[i].core << "," << points[i].cluster << endl;
+        cout << ((points[i].core) ? "core" : "no  ") << "," << points[i].cluster << endl;
     }
 
+    cout << "Done clustering, there are x clusters." << endl;
 
 
-    plot(points, image);
+    plot(points, image, true);
 
 
 }

@@ -24,7 +24,7 @@ enum MEASURE {
 
 // Point structure, "Point" is reserved for one of cv types
 struct P {
-    P(double x, double y) : x(x), y(y), neighbors(0), cluster(0),core(false), boundary(false), noise(false){}
+    P(double x, double y) : x(x), y(y), neighbors(0), cluster(-1),core(false), boundary(false), noise(false){}
 
     double x;
     double y;
@@ -57,15 +57,11 @@ bool operator!=(const P &p1, const P &p2);
 
 Points readPoints(string filename, bool centroids, char separator = ',');
 
-Points  generateRandom(Points &points, double minX, double maxX, int num, bool centroids = false);
+void generateRandom(Points &points, double minX, double maxX, int num, double minY=-1, double maxY=-1);
 
-Points  generateRandom(Points &points, double minX, double maxX, int num, bool centroids, double minY, double maxY);
+void cluster(int minPts, MEASURE measure = Euclidean, bool show = false);
 
-Points initialCenters(Points centroids, double minP, double maxP, int k);
-
-void cluster(int minPts, MEASURE measure = Euclidean);
-
-void plot(Points points, Mat image);
+void plot(Points points, Mat image, bool last);
 
 void printPoints(Points points) ;
 
@@ -74,8 +70,6 @@ double getDistance(P p1, P p2, MEASURE m);
 inline double getEuclidean(P p1, P p2);//Euclidean
 
 inline double getManhattan(P p1, P p2);//Manhattan
-
-void intracluster(MEASURE m, int k);
 
 void minMax(Points &points, Points &centroids, MEASURE m);
 
